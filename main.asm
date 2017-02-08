@@ -8,9 +8,15 @@ boardStart:
 	.half 0
 	.half 0
 board:
-	.asciiz "TODO1 " #TODO
+	.asciiz "" #TODO
 playerPrompt: 
-	.asciiz "TODO2 " #TODO
+	.asciiz "" #TODO
+player1Name:
+	.asciiz "" #TODO
+player2Name:
+	.asciiz "" #TODO
+winMsg:
+	.asciiz "" #TODO
 
 	#$s0 is always win condition, 10 for t1	  , 11 for t2
 	#if game has computer it is on t1
@@ -26,15 +32,17 @@ gamePlayLoop:
 	#TODO add tile t0
 	#TODO add tile t1
 	#TODO win check
-	bne $s0,$0, win #met win condition
+	bnez $s0, win #met win condition
 	j gamePlayLoop
 	#you should never get here
 	j exit
 	
 compGameLoop:
-	
-	bne $s0,$0, win #met win condition
-	j gamePlayLoop
+	#TODO add tile t0
+	#TODO add tile t1
+	#TODO win check
+	bnez $s0, win #met win condition
+	j compGameLoop 
 	#should never get here
 	j exit
 	
@@ -44,7 +52,7 @@ drawBoard:
 	syscall
 	jr $31 #ret
 	
-#in: $a1 = row ? ,$a2 = col ?
+#in: $a1 = row, $a2 = col  
 #ret: $v0 = square's value
 getSquare: 
 	sll  $t0,$a2,1 #calc offset col offset, really $t0 = $a2 * 2^1, 16 bits/col or 2 bytes / col
