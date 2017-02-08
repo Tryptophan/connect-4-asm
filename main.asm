@@ -13,6 +13,7 @@ playerPrompt:
 	.asciiz "TODO2 " #TODO
 
 	#$s0 is always win condition, 10 for t1	  , 11 for t2
+	#if game has computer it is on t1
 	
 .text
 setup:
