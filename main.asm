@@ -70,7 +70,6 @@ prompts:#TODO
 	
 win:
 #TODO print win message
-j exit
 	
 exit:
 	li $v0, 10
