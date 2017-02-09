@@ -1,12 +1,7 @@
 .data 
-#board is a 2D array of 2 bit entrys, 1/2 word per col, therefore wasting 2 bits / col or 12 bits across board
+#board is a 2D array of 1 byte entrys, there is a lot of waste in this, its easier to do this vs. less waste  
 boardStart: 
-	.half 0
-	.half 0
-	.half 0
-	.half 0
-	.half 0
-	.half 0
+	.space 48 
 board:
 	.asciiz "" #TODO
 playerPrompt: 
@@ -52,15 +47,13 @@ drawBoard:
 	syscall
 	jr $31 #ret
 	
-#in: $a1 = row, $a2 = col  
+#in: $a0 = row, $a1 = col  
 #ret: $v0 = square's value
 getSquare: 
-	sll  $t0,$a2,1 #calc offset col offset, really $t0 = $a2 * 2^1, 16 bits/col or 2 bytes / col
-	lhu  $t0,boardStart($t0) #load the col
-	sll  $t1,$a1,1 #calc ofset into the cell, 2 bits per cell, this is really $t1 = $a1 << 2^1 == $a1 * 2
-	srlv $t0,$t0,$t1 #shift cell into first 2 bits
-	andi $v0,$t0,0x3 #mask off first 2 bits (wanted cell), opt.
-	jr   $31 #ret
+	sll $t0, $a0, 3
+	add $t0,$t0,$a1
+	lbu $v0,boardStart($t0)
+	jr $31 #ret
 	
 prompts:#TODO
 	la $a0, playerPrompt # load addr of playerPrompt into reg a0
@@ -70,6 +63,9 @@ prompts:#TODO
 	
 win:
 #TODO print win message
+	j exit
+	
+
 	
 exit:
 	li $v0, 10
