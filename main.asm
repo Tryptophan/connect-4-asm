@@ -65,7 +65,27 @@ win:
 #TODO print win message
 	j exit
 	
+	# in: $a0 = cell content from array
+	# ret: $v0 = 1 = occ, 0 = not occ
+getOcc:
+	andi $t0, $a0, 0x80 # MS bit is if cell is occ
+	sltiu $v0, $t1,1
+	
+	# in: $a0 = cell content from array
+	# ret: $v0 = team
+getTeam:
+	andi $t0, $a0, 0x40 # 7th MS bit is team
+	sltiu $v0, $t1,1
 
+# in: $a0 = cell content from array
+	# ret: $v0 = run length
+getRunLength:
+	andi $t0, $a0, 0x30 # 5 and 6th MS bit is run length
+	srl $v0, $a0, 4 #move to begining
+	
+getRunDir:
+	andi $t0, $a0, 0xE #bit 1-3 is dir
+	srl $v0, $t0, 1
 	
 exit:
 	li $v0, 10
