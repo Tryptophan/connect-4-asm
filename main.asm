@@ -109,7 +109,7 @@ winCheckBottom:
 winCheckRightSide:
 
 
-WinCheckLeftSide:
+winCheckLeftSide:
 
 
 winCheckMiddle:
