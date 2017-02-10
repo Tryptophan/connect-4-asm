@@ -25,17 +25,23 @@ setup:
 	
 gamePlayLoop:
 	#TODO add tile t0
+	li $a2, 0
+	j winCheck #BUG other team still plays if t0 wins
 	#TODO add tile t1
-	#TODO win check
-	bnez $s0, win #met win condition
+	li $a2, 1
+	j winCheck 
+	bnez $s0, win #met win condition, BUG: if both teams win on the same turn t1 always wins, 
 	j gamePlayLoop
 	#you should never get here
 	j exit
 	
 compGameLoop:
 	#TODO add tile t0
+	li $a2, 0
+	j winCheck #BUG other team still plays if t0 wins
 	#TODO add tile t1
-	#TODO win check
+	li $a2, 1
+	j winCheck 
 	bnez $s0, win #met win condition
 	j compGameLoop 
 	#should never get here
@@ -65,27 +71,49 @@ win:
 #TODO print win message
 	j exit
 	
-	# in: $a0 = cell content from array
-	# ret: $v0 = 1 = occ, 0 = not occ
+# in: $a0 = cell content from array
+# ret: $v0 = 1 = occ, 0 = not occ
 getOcc:
 	andi $t0, $a0, 0x80 # MS bit is if cell is occ
 	sltiu $v0, $t1,1
 	
-	# in: $a0 = cell content from array
-	# ret: $v0 = team
+# in: $a0 = cell content from array
+# ret: $v0 = team
 getTeam:
 	andi $t0, $a0, 0x40 # 7th MS bit is team
 	sltiu $v0, $t1,1
 
 # in: $a0 = cell content from array
-	# ret: $v0 = run length
+# ret: $v0 = run length
 getRunLength:
 	andi $t0, $a0, 0x30 # 5 and 6th MS bit is run length
 	srl $v0, $a0, 4 #move to begining
 	
+# in: $a0 = cell content from array
+# ret: $v0 = run dir
 getRunDir:
 	andi $t0, $a0, 0xE #bit 1-3 is dir
 	srl $v0, $t0, 1
+	
+#in: $a0= row, $a1 = col, $a2 =  team
+#out: $s0 = win
+winCheck:
+	beq $a0, 0, winCheckBottom
+	beq $a1, 0, winCheckRightSide
+	beq $a1, 6, winCheckLeftSide
+	j winCheckMiddle
+	
+winCheckBottom:
+
+
+winCheckRightSide:
+
+
+WinCheckLeftSide:
+
+
+winCheckMiddle:
+
 	
 exit:
 	li $v0, 10
