@@ -2,6 +2,8 @@
 #board is a 2D array of 1 byte entrys, there is a lot of waste in this, its easier to do this vs. less waste  
 boardStart: 
 	.space 48 
+topStart:
+	.space 7
 board:
 	.asciiz "" #TODO
 playerPrompt: 
@@ -113,6 +115,14 @@ winCheckLeftSide:
 
 
 winCheckMiddle:
+
+#in: $a0 = row
+#out: $v0 = col
+gravity:
+	lbu $v0, topStart($a0) #load next aval cell
+	addiu $t0,$v0,1 #move up one
+	sw $t0, topStart($a0) #store it back
+	jr $ra #ret
 
 	
 exit:
