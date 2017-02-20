@@ -1,5 +1,5 @@
 .data 
-#board is a 2D array of 1 byte entrys, there is a lot of waste in this, its easier to do this vs. less waste  
+#board is a 2D array of 1 byte entrys
 boardStart: 
 	.space 48 
 topStart:
@@ -8,21 +8,19 @@ board:
 	.asciiz "" #TODO
 playerPrompt: 
 	.asciiz "" #TODO
-player1Name:
-	.asciiz "" #TODO
-player2Name:
-	.asciiz "" #TODO
 winMsg:
 	.asciiz "" #TODO
 
 	#$s0 is always win condition, 10 for t1	  , 11 for t2
+	#$s1 is the type of game, 0 for 2 player, 1 for computer 
+	#$s2 is row for last move
+	#$s3 is col for last move
 	#if game has computer it is on t1
 	
 .text
 setup:
 	jal prompts
 	jal drawBoard
-	#here $s1 is the type of game, 0 for 2 player, 1 for computer 
 	bnez  $s1, compGameLoop
 	
 gamePlayLoop:
@@ -101,6 +99,12 @@ getRunDir:
 	srl $v0, $t0, 1
 	jr $ra
 	
+# in: $a0 = cell content from array
+# ret: $v0 = 1 if multiple intersecting runs
+getMultiRun:
+	andi $v0, $a0, 1
+	jr $ra
+	
 #in: $a0= row, $a1 = col, $a2 =  team
 #out: $s0 = win
 winCheck:
@@ -108,17 +112,41 @@ winCheck:
 	beq $a1, 0, winCheckRightSide
 	beq $a1, 6, winCheckLeftSide
 	j winCheckMiddle
-	
+
+#in: $a0= row, $a1 = col, $a2 =  team
+#out: $s0 = win	
 winCheckBottom:
+beq $a1, 0, winCheckBottomRight
+beq $a1, 6, winCheckBottomLeft
 
-
+#in: $a0= row, $a1 = col, $a2 =  team
+#out: $s0 = win
 winCheckRightSide:
+jal getSquare
+move $a0, $s2
+move $a1, $s3
+move $v0, $a0
 
 
+#in: $a0= row, $a1 = col, $a2 =  team
+#out: $s0 = win
 winCheckLeftSide:
 
 
+#in: $a0= row, $a1 = col, $a2 =  team
+#out: $s0 = win
+winCheckBottomRight:
+
+
+#in: $a0= row, $a1 = col, $a2 =  team
+#out: $s0 = win
+winCheckBottomLeft:
+
+
+#in: $a0= row, $a1 = col, $a2 =  team
+#out: $s0 = win
 winCheckMiddle:
+
 
 #in: $a0 = row
 #out: $v0 = col
