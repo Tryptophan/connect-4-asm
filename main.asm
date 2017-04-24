@@ -50,17 +50,6 @@ player2Piece:
 	#if game has computer it is on t1
 	
 .text
-setup:
-	bnez  $s1, compGameLoop
-	
-# $v0 = Sanitized column number from human input (should be 1-7)
-input:
-	# TODO: Get input from human and load into $v0
-
-# $v0 = The computer player's decided column to place its next piece
-compInput:
-	# TODO: Find the next valid column to place a piece and load it into $v0
-
 gamePlayLoop:
 	# Get input from player 1 (human player)
 	
@@ -76,6 +65,11 @@ gamePlayLoop:
 	move $a0, $v0 # Load the returned input into the column parameter
 	li $a1, 1 # Load player 1 (human) into the player parameter to set the piece
 	call placePiece
+	
+	move $a0, $v0
+	
+	li $a2, 1
+	call winCheck
 	
 	call drawBoard
 	
@@ -106,19 +100,15 @@ gamePlayLoop:
 	j gamePlayLoop
 	# You should never get here
 	j exit
-	
-compGameLoop:
-	#TODO add tile t0
-	li $a2, 0
-	call winCheck #BUG other team still plays if t0 wins
-	#TODO add tile t1
-	li $a2, 1
-	call winCheck 
-	bnez $s0, win #met win condition
-	j compGameLoop 
-	#should never get here
-	j exit
-	
+
+# $v0 = Sanitized column number from human input (should be 1-7)
+input:
+	# TODO: Get input from human and load into $v0
+
+# $v0 = The computer player's decided column to place its next piece
+compInput:
+	# TODO: Find the next valid column to place a piece and load it into $v0
+
 # $a0: column
 # $a1: player number
 placePiece:
@@ -181,14 +171,6 @@ printPlayer2:
 	syscall
 	j continue
 
-#in: $a0 = row, $a1 = col  
-#ret: $v0 = square's value
-getSquare: 
-	sll $t0, $a0, 3
-	add $t0,$t0,$a1
-	lbu $v0,boardStart($t0)
-	return #ret
-
 # $v0 = The player's chosen column (1-7)
 prompts:
 	la $a0, playerPrompt # load addr of playerPrompt into reg a0
@@ -199,94 +181,8 @@ prompts:
 	return #ret
 	
 win:
-#TODO print win message
+	#TODO print win message
 	j exit
-	
-# in: $a0 = cell content from array
-# ret: $v0 = 1 = occ, 0 = not occ
-getOcc:
-	andi $t0, $a0, 0x80 # MS (most significant) bit is if cell is occ(upied)
-	sltiu $v0, $t1,1
-	return
-	
-# in: $a0 = cell content from array
-# ret: $v0 = team
-getTeam:
-	andi $t0, $a0, 0x40 # 7th MS bit is team
-	sltiu $v0, $t1,1
-	return
-
-# in: $a0 = cell content from array
-# ret: $v0 = run length
-getRunLength:
-	andi $t0, $a0, 0x30 # 5 and 6th MS bit is run length
-	srl $v0, $a0, 4 #move to begining
-	return
-	
-# in: $a0 = cell content from array
-# ret: $v0 = run dir
-getRunDir:
-	andi $t0, $a0, 0xE #bit 1-3 is dir
-	srl $v0, $t0, 1
-	return
-	
-# in: $a0 = cell content from array
-# ret: $v0 = 1 if multiple intersecting runs
-getMultiRun:
-	andi $v0, $a0, 1
-	return
-	
-#in: $a0= row, $a1 = col, $a2 =  team
-#out: $s0 = win
-winCheck:
-	beq $a0, 0, winCheckBottom
-	beq $a1, 0, winCheckRightSide
-	beq $a1, 6, winCheckLeftSide
-	j winCheckMiddle
-
-#in: $a0= row, $a1 = col, $a2 =  team
-#out: $s0 = win	
-winCheckBottom:
-	beq $a1, 0, winCheckBottomRight
-	beq $a1, 6, winCheckBottomLeft
-
-#in: $a0= row, $a1 = col, $a2 =  team
-#out: $s0 = win
-winCheckRightSide:
-	move $a0, $s2
-	move $a1, $s3
-	call checkBelow
-
-checkBelow:
-	subi $a0, $s2 ,1
-	move $a1, $s3
-	call getSquare
-	move $v0, $a0
-	call getTeam
-	li $a3, 5
-	break
-	#beq $v0,$a2, calcRun
-	return
-
-
-#in: $a0= row, $a1 = col, $a2 =  team
-#out: $s0 = win
-winCheckLeftSide:
-
-
-#in: $a0= row, $a1 = col, $a2 =  team
-#out: $s0 = win
-winCheckBottomRight:
-
-
-#in: $a0= row, $a1 = col, $a2 =  team
-#out: $s0 = win
-winCheckBottomLeft:
-
-
-#in: $a0= row, $a1 = col, $a2 =  team
-#out: $s0 = win
-winCheckMiddle:
 
 
 #in: $a0 = col
@@ -309,3 +205,51 @@ boardIndex:
 exit:
 	li $v0, 10
 	syscall
+	
+# $a0 = col of the piece
+# $a1 = row of the piece
+# $a2 = player placing the piece
+# $v0 = 0 -> player did not win, 1 -> player $a1 won
+winCheck:
+	# If the column is more than or equal to 3 to the right, checkLeft
+	bge $a0, 3, checkLeft
+		
+	# If the column is less than or equal to 3 to the right, checkRight
+	ble $a0, 3, checkRight 
+		
+	
+	
+	# TODO: Set if player won
+	li $v0, 0
+	return
+
+# Parameters are for the following check(Direction) functions
+# These functions should check recursively
+# $a0 = col
+# $a1 = row
+# $a2 = current count (starts at 0, when it hits 3, return win)
+# $v0 = 0 is not a win, 1 is a win
+
+checkUp:
+	return
+	
+checkUpRight:
+	return
+	
+checkRight:
+	return
+	
+checkDownRight:
+	return
+	
+checkDown:
+	return
+	
+checkDownLeft:
+	return
+	
+checkLeft:
+	return
+	
+checkUpLeft:
+	return
