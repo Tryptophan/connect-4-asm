@@ -34,6 +34,12 @@ winMsg:
 	.asciiz "" #TODO
 newLine:
 	.asciiz "\n"
+emptySpace:
+	.asciiz "|_|"
+player1Piece:
+	.asciiz "|X|"
+player2Piece:
+	.asciiz "|O|"
 
 	#$s0 is always win condition, 10 for t1	  , 11 for t2
 	#$s1 is the type of game, 0 for 2 player, 1 for computer 
@@ -49,7 +55,7 @@ setup:
 	call placePiece
 	call drawBoard
 	li $a0, 1
-	li $a1, 1
+	li $a1, 2
 	call placePiece
 	call drawBoard
 	bnez  $s1, compGameLoop
@@ -103,9 +109,13 @@ drawBoard:
 	# $t4 will be the index of the byte we're printing
 	mul $t4, $t0, $t3
 	add $t4, $t4, $t2
-	lbu $a0, boardStart($t4)
-	li $v0, 1
-	syscall
+	# $t5 is the actual value at that index
+	lbu $t5, boardStart($t4)
+	beq $t5, 1, printPlayer1
+	beq $t5, 2, printPlayer2
+	beqz $t5, printEmptySpace
+	
+	continue:
 
 	addi $t2, $t2, 1
 	blt $t2, $t3, innerForLoop
@@ -122,13 +132,29 @@ drawBoard:
 	syscall
 	return #ret
 	
+printEmptySpace:
+	li $v0, 4
+	la $a0, emptySpace
+	syscall
+	j continue
+printPlayer1:
+	li $v0, 4
+	la $a0, player1Piece 
+	syscall
+	j continue
+printPlayer2:
+	li $v0, 4
+	la $a0, player2Piece
+	syscall
+	j continue
+
 #in: $a0 = row, $a1 = col  
 #ret: $v0 = square's value
 getSquare: 
 	sll $t0, $a0, 3
 	add $t0,$t0,$a1
 	lbu $v0,boardStart($t0)
-	return#ret
+	return #ret
 	
 prompts:#TODO
 	la $a0, playerPrompt # load addr of playerPrompt into reg a0
