@@ -25,7 +25,7 @@
 boardStart: 
 	.space 42 
 topStart:
-	.space 6
+	.space 7
 board:
 	.asciiz "" # This is filled by draw board when being printed.
 playerPrompt: 
@@ -53,15 +53,13 @@ player2Piece:
 setup:
 	bnez  $s1, compGameLoop
 	
-# $v0 = sanatized column number from human input (should be 1-7)
+# $v0 = Sanitized column number from human input (should be 1-7)
 input:
 	# TODO: Get input from human and load into $v0
 
-# $v0 = The computer player's decided column to place it's next piece	
+# $v0 = The computer player's decided column to place its next piece
 compInput:
 	# TODO: Find the next valid column to place a piece and load it into $v0
-	li $v0, 2
-
 
 gamePlayLoop:
 	# Get input from player 1 (human player)
@@ -86,14 +84,20 @@ gamePlayLoop:
 	#call winCheck #BUG other team still plays if t0 wins
 	
 	# Get input from the computer player (next valid column)
-	#call compInput
+	# TODO: call compInput
+	li $v0, 2
+	
+	# What I assume we can do here is check topStart if the column that input (human or comp) returns is valid (as in not greater than 5, assuming topStart ranges from 0-5).
+	# If we get an invalid input for a column, ask the prompt again (j input)
+	
+	#end call compInput
 	
 	# Place the piece into the column loaded from $v0
-	#lb $a0, ($v0)
-	#li $a1, 2 # Load player 2 (computer) into the player parameter
-	#call placePiece
+	move $a0, $v0
+	li $a1, 2 # Load player 2 (computer) into the player parameter
+	call placePiece
 	
-	#call drawBoard
+	call drawBoard
 	
 	# TODO: Check if player 2 (computer) has won
 	#li $a2, 1
