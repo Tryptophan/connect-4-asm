@@ -27,13 +27,15 @@ boardStart:
 topStart:
 	.space 6
 board:
-	.asciiz "" #TODO
+	.asciiz "" # This is filled by draw board when being printed.
 playerPrompt: 
-	.asciiz "" #TODO
+	.asciiz "Type a column (1-7) to drop your next piece.\n"
 winMsg:
-	.asciiz "" #TODO
+	.asciiz "" #TODO: Change this per user (eg: Player (PLYAER_NAME) won!), done at runtime.
 newLine:
 	.asciiz "\n"
+	
+# Empty space and player peices to draw the 2D byte-array board with
 emptySpace:
 	.asciiz "|_|"
 player1Piece:
@@ -41,7 +43,7 @@ player1Piece:
 player2Piece:
 	.asciiz "|O|"
 
-	#$s0 is always win condition, 10 for t1	  , 11 for t2
+	#$s0 is always win condition, 10 for t1, 11 for t2
 	#$s1 is the type of game, 0 for 2 player, 1 for computer 
 	#$s2 is row for last move
 	#$s3 is col for last move
@@ -49,29 +51,56 @@ player2Piece:
 	
 .text
 setup:
-	call prompts
-	li $a0, 1
-	li $a1, 1
-	call placePiece
-	call drawBoard
-	li $a0, 1
-	li $a1, 2
-	call placePiece
-	call drawBoard
 	bnez  $s1, compGameLoop
 	
+# $v0 = sanatized column number from human input (should be 1-7)
+input:
+	# TODO: Get input from human and load into $v0
+
+# $v0 = The computer player's decided column to place it's next piece	
+compInput:
+	# TODO: Find the next valid column to place a piece and load it into $v0
+	li $v0, 2
+
+
 gamePlayLoop:
-	#TODO add tile t0
-	# check if player 0 has won
-	li $a2, 0
-	call winCheck #BUG other team still plays if t0 wins
-	#TODO add tile t1
-	# check if player 1 has won
-	li $a2, 1
-	call winCheck 
-	bnez $s0, win #met win condition, BUG: if both teams win on the same turn t1 always wins, 
+	# Get input from player 1 (human player)
+	
+	# TODO: call input
+	la $a0, playerPrompt # load addr of playerPrompt into reg a0
+	li $v0, 4 # syscall # for "print string"
+	syscall
+	li $v0, 5
+	syscall
+	addi $v0, $v0, -1 # subtract 1 from the input to get the column number from (0-6)
+	# end call input
+	
+	move $a0, $v0 # Load the returned input into the column parameter
+	li $a1, 1 # Load player 1 (human) into the player parameter to set the piece
+	call placePiece
+	
+	call drawBoard
+	
+	# TODO: Check if player 1 (human) has won
+	#li $a2, 0
+	#call winCheck #BUG other team still plays if t0 wins
+	
+	# Get input from the computer player (next valid column)
+	#call compInput
+	
+	# Place the piece into the column loaded from $v0
+	#lb $a0, ($v0)
+	#li $a1, 2 # Load player 2 (computer) into the player parameter
+	#call placePiece
+	
+	#call drawBoard
+	
+	# TODO: Check if player 2 (computer) has won
+	#li $a2, 1
+	#call winCheck 
+	#bnez $s0, win #met win condition, BUG: if both teams win on the same turn t1 always wins, 
 	j gamePlayLoop
-	#you should never get here
+	# You should never get here
 	j exit
 	
 compGameLoop:
@@ -155,10 +184,13 @@ getSquare:
 	add $t0,$t0,$a1
 	lbu $v0,boardStart($t0)
 	return #ret
-	
-prompts:#TODO
+
+# $v0 = The player's chosen column (1-7)
+prompts:
 	la $a0, playerPrompt # load addr of playerPrompt into reg a0
 	li $v0, 4 # syscall # for "print string"
+	syscall
+	li $v0, 5
 	syscall
 	return #ret
 	
