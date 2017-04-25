@@ -1,4 +1,3 @@
-
 .macro push (%reg)
 	addi $sp, $sp, -4
 	sw %reg, 0($sp)
@@ -32,6 +31,10 @@ playerPrompt:
 	.asciiz "Type a column (1-7) to drop your next piece.\n"
 winMsg:
 	.asciiz "" #TODO: Change this per user (eg: Player (PLYAER_NAME) won!), done at runtime.
+invalidColumn:
+	.asciiz "Please enter a column number between 1 and 7 inclusive."
+fullColumn:
+	.asciiz "That column is already full. Please choose another column."
 newLine:
 	.asciiz "\n"
 	
@@ -50,28 +53,9 @@ player2Piece:
 	#if game has computer it is on t1
 	
 .text
-setup:
-	bnez  $s1, compGameLoop
-	
-# $v0 = Sanitized column number from human input (should be 1-7)
-input:
-	# TODO: Get input from human and load into $v0
-
-# $v0 = The computer player's decided column to place its next piece
-compInput:
-	# TODO: Find the next valid column to place a piece and load it into $v0
-
 gamePlayLoop:
 	# Get input from player 1 (human player)
-	
-	# TODO: call input
-	la $a0, playerPrompt # load addr of playerPrompt into reg a0
-	li $v0, 4 # syscall # for "print string"
-	syscall
-	li $v0, 5
-	syscall
-	addi $v0, $v0, -1 # subtract 1 from the input to get the column number from (0-6)
-	# end call input
+	call input
 	
 	move $a0, $v0 # Load the returned input into the column parameter
 	li $a1, 1 # Load player 1 (human) into the player parameter to set the piece
@@ -84,18 +68,20 @@ gamePlayLoop:
 	#call winCheck #BUG other team still plays if t0 wins
 	
 	# Get input from the computer player (next valid column)
-	# TODO: call compInput
-	li $v0, 2
+	call compInput
 	
 	# What I assume we can do here is check topStart if the column that input (human or comp) returns is valid (as in not greater than 5, assuming topStart ranges from 0-5).
 	# If we get an invalid input for a column, ask the prompt again (j input)
-	
-	#end call compInput
 	
 	# Place the piece into the column loaded from $v0
 	move $a0, $v0
 	li $a1, 2 # Load player 2 (computer) into the player parameter
 	call placePiece
+	
+	# print new line
+	la $a0, newLine
+	li $v0, 4
+	syscall
 	
 	call drawBoard
 	
@@ -106,6 +92,37 @@ gamePlayLoop:
 	j gamePlayLoop
 	# You should never get here
 	j exit
+	
+# $v0 = Sanitized column number from human input (should be 1-7)
+input:
+	# TODO: Get input from human and load into $v0
+	la $a0, playerPrompt # load addr of playerPrompt into reg a0
+	li $v0, 4 # syscall # for "print string"
+	syscall
+	li $v0, 5
+	syscall
+	
+	# check if column was between 1 and 7
+	blez $v0, printInvalidColumn
+	li $t3, 7
+	bgt $v0, $t3, printInvalidColumn
+	
+	addi $v0, $v0, -1 # subtract 1 from the input to get the column number from (0-6)
+	
+	# check if column is already full
+	move $a0, $v0
+	call topPiece
+	li $t1, 5
+	bgt $v0, $t1, printFullColumn
+	move $v0, $a0
+	
+	return # end call input
+
+# $v0 = The computer player's decided column to place its next piece
+compInput:
+	# TODO: Find the next valid column to place a piece and load it into $v0
+	li $v0, 2
+	return
 	
 compGameLoop:
 	#TODO add tile t0
@@ -153,6 +170,7 @@ drawBoard:
 	addi $t2, $t2, 1
 	blt $t2, $t3, innerForLoop
 
+	# print new line
 	la $a0, newLine
 	li $v0, 4
 	syscall
@@ -164,6 +182,18 @@ drawBoard:
 	li $v0, 4 # syscall # for "print string"
 	syscall
 	return #ret
+
+printInvalidColumn:
+	li $v0, 4
+	la $a0, invalidColumn
+	syscall
+	j input
+
+printFullColumn:
+	li $v0, 4
+	la $a0, fullColumn
+	syscall
+	j input
 	
 printEmptySpace:
 	li $v0, 4
@@ -288,7 +318,12 @@ winCheckBottomLeft:
 #out: $s0 = win
 winCheckMiddle:
 
-
+# $a0: column
+# $v0: row of top piece of that column
+topPiece:
+	lbu $v0, topStart($a0)
+	return
+	
 #in: $a0 = col
 #out: $v0 = row
 gravity:
