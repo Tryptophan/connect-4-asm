@@ -23,7 +23,7 @@
 .data 
 #board is a 2D array of 1 byte entrys
 boardStart: 
-	.space 42 
+	.space 42
 topStart:
 	.space 7
 board:
@@ -68,8 +68,11 @@ gamePlayLoop:
 	li $a1, 1 # Load player 1 (human) into the player parameter to set the piece
 	call placePiece
 	
-	move $a0, $v0
-	
+	# Move the col into the first param
+	li $a0, 0
+	# Move the row into the second param
+	li $a1, 6
+	# Set the player param
 	li $a2, 1
 	call winCheck
 	
@@ -99,8 +102,6 @@ gamePlayLoop:
 	#li $a2, 2
 	#call winCheck 
 	j gamePlayLoop
-	# You should never get here
-	j exit
 
 # $v0 = Sanitized column number from human input (should be 1-7)
 input:
@@ -112,6 +113,7 @@ compInput:
 
 # $a0: column
 # $a1: player number
+# return the row the piece dropped to 
 placePiece:
 	call gravity
 	move $t2, $a1
@@ -152,7 +154,7 @@ drawBoard:
 	bgt $t0, $t1, forLoop
 
 	la $a0, board # load addr of board into reg a0
-	li $v0, 4 # syscall # for "print string"
+	li $v0, 4 # syscall number for "print string"
 	syscall
 	return #ret
 	
@@ -174,22 +176,23 @@ printPlayer2:
 
 # $a0 = player (1 or 2)
 win:
+	# Draw the final board
+	call drawBoard
 	# Print win message for player 1 or 2
 	beq $a0, 1, printPlayer1Won
 	beq $a0, 2, printPlayer2Won
-	j exit
 
 printPlayer1Won:
 	li $v0, 4
 	la $a0, player1Win
 	syscall
-	return
+	j exit
 
 printPlayer2Won:
 	li $v0, 4
 	la $a0, player2Win
 	syscall
-	return
+	j exit
 
 #in: $a0 = col
 #out: $v0 = row
@@ -208,26 +211,22 @@ boardIndex:
 	add $v0, $v0, $a0
 	return
 	
-exit:
-	li $v0, 10
-	syscall
-	
 # $a0 = col of the piece
 # $a1 = row of the piece
 # $a2 = player placing the piece
 # The check(Direction) functions will jump to win if the player won
 winCheck:
 	# If the column is more than or equal to 3, checkLeft
-	bge $a0, 3, checkLeft
+	#bge $a0, 3, checkLeft
 		
 	# If the column is less than or equal to 3, checkRight
-	ble $a0, 3, checkRight 
+	#ble $a0, 3, checkRight 
 		
 	# If the row is more than or equal to 3, checkUp
 	bge $a1, 3, checkUp
 	
 	# If the row is less than or equal to 3, checkDown
-	ble $a1, 3, checkDown
+	#ble $a1, 3, checkDown
 	
 	# TODO: Check diagonals
 	
@@ -243,15 +242,15 @@ winCheck:
 checkUp:
 	# All the other functions with check(Direction) should folow this pattern:
 	# Recursively check the direction, if the player wins, jump to setWin
-	
+
 	# Check the current piece if it's the player's
 	call boardIndex
 	
 	# Get the piece from the position in the board returned by boardIndex and load the value into $t6
-	sb $t6, boardStart($v0)
+	lbu $t6, boardStart($v0)
 	
 	# If the piece is not the current player's ($a2) piece, exit
-	bne $t6, exitCheckUp
+	bne $t6, $a2, exitCheckUp
 	
 	# Increment the row up 1 (subtract since 0 is the top)
 	addi $a1, $a1, -1
@@ -263,7 +262,7 @@ checkUp:
 	blt $a3, 3, checkUp
 	
 	# Branch win if count is 3
-	li $a0, $a2
+	move $a0, $a2
 	beq $a3, 3, win
 	
 	# Return if the current piece is not the player's piece (base case)
@@ -280,7 +279,31 @@ checkDownRight:
 	return
 	
 checkDown:
-	return
+	# Check the current piece if it's the player's
+	call boardIndex
+	
+	# Get the piece from the position in the board returned by boardIndex and load the value into $t6
+	lbu $t6, boardStart($v0)
+	
+	# If the piece is not the current player's ($a2) piece, exit
+	bne $t6, $a2, exitCheckDown
+	
+	# Increment the row down 1 (add since 0 is the top)
+	addi $a1, $a1, 1
+	
+	# Increment the count up 1
+	addi $a3, $a3, 1
+	
+	# Branch checkUp if count is less than 3
+	blt $a3, 3, checkDown
+	
+	# Branch win if count is 3
+	move $a0, $a2
+	beq $a3, 3, win
+	
+	# Return if the current piece is not the player's piece (base case)
+	exitCheckDown:
+		return
 	
 checkDownLeft:
 	return
@@ -290,5 +313,7 @@ checkLeft:
 	
 checkUpLeft:
 	return
-	
+exit:
+	li $v0, 10
+	syscall
 
